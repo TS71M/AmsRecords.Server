@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lib\Lib.csproj" />
+    <ProjectReference Include="..\Records\AmsRecords.csproj" />
+    <ProjectReference Include="..\Models\AmsModels.csproj" />
   </ItemGroup>
 
 </Project>
