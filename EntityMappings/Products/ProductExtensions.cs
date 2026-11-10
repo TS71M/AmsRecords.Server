@@ -16,12 +16,14 @@ public static class ProductExtensions
         var accountName = product.Account?.AccDes ?? string.Empty;
         var productTypeName = product.ProductType?.ProductTypeName ?? string.Empty;
         var packUnitLabel = product.UniWeiPack?.UnitShort ?? string.Empty;
+        var pack = product.Pack.ToString("0.######");
+        var price = product.Price.ToString("0.######");
         var packSize = string.IsNullOrWhiteSpace(packUnitLabel)
-            ? product.Pack.ToString("N1")
-            : $"{product.Pack} {packUnitLabel}";
+            ? pack
+            : $"{pack} {packUnitLabel}";
         var pricePerUnit = string.IsNullOrWhiteSpace(packUnitLabel)
-            ? product.Price.ToString("N2")
-            : $"{product.Price}/{packUnitLabel}";
+            ? price
+            : $"{price}/{packUnitLabel}";
 
         return new(
             PubId: product.PubId,
@@ -81,19 +83,7 @@ public static class ProductExtensions
             SdsPath: product.SdsPath,
             SdsUploadDt: product.SdsUploadDt,
             SdsSize: product.SdsSize,
-            Nutrients: product.ProductNutrients
-                .OrderBy(x => x.Nutrient.OrderNumber)
-                .ThenBy(x => x.Nutrient.NutrientName)
-                .Select(x => new ProductNutrientDto(
-                    PubId: x.PubId,
-                    ProductPubId: product.PubId,
-                    NutrientPubId: x.Nutrient.PubId,
-                    NutrientName: x.Nutrient.NutrientName,
-                    Amount: x.Amount,
-                    AnalysisBasis: x.AnalysisBasis.ToString(),
-                    AnalysisSource: x.AnalysisSource,
-                    IsVerified: x.IsVerified))
-                .ToList(),
+            Nutrients: product.ProductNutrients.ToLabelOrderedDtos(product.PubId),
             Supplements: product.ProductSupplements
                 .OrderBy(x => x.Category)
                 .ThenBy(x => x.Name)
@@ -118,7 +108,8 @@ public static class ProductExtensions
                     ImagePubId: x.AppImage?.PubId,
                     Image: x.Image))
                 .ToList(),
-            DensityKgPerL: product.DensityKgPerL
+            DensityKgPerL: product.DensityKgPerL,
+            AllowedFields: AllowedFields(product)
         );
     }
 
@@ -130,17 +121,32 @@ public static class ProductExtensions
             Code: nutrient.Code
         );
 
+    public static List<ProductNutrientDto> ToLabelOrderedDtos(this IEnumerable<ProductNutrient> nutrients, Guid productPubId)
+        => nutrients.OrderBy(x => ProductNutrientLabelOrder.Rank(x.Nutrient.Code))
+            .ThenBy(x => x.Nutrient.OrderNumber)
+            .ThenBy(x => x.Nutrient.NutrientName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Nutrient.Code, StringComparer.Ordinal)
+            .Select(x => ToNutrientDto(x, productPubId)).ToList();
+
     public static ProductNutrientDto ToDto(this ProductNutrient productNutrient)
+        => ToNutrientDto(productNutrient, productNutrient.Product.PubId);
+
+    static ProductNutrientDto ToNutrientDto(ProductNutrient productNutrient, Guid productPubId)
         => new(
             PubId: productNutrient.PubId,
-            ProductPubId: productNutrient.Product.PubId,
+            ProductPubId: productPubId,
             NutrientPubId: productNutrient.Nutrient.PubId,
             NutrientName: productNutrient.Nutrient.NutrientName,
             Amount: productNutrient.Amount,
             AnalysisBasis: productNutrient.AnalysisBasis.ToString(),
             AnalysisSource: productNutrient.AnalysisSource,
-            IsVerified: productNutrient.IsVerified
+            IsVerified: productNutrient.IsVerified,
+            Forms: ToForms(productNutrient)
         );
+
+    static IReadOnlyList<ProductNutrientFormDto>? ToForms(ProductNutrient nutrient)
+        => nutrient.Forms.Count == 0 ? null : nutrient.Forms.OrderBy(f => f.FormCode)
+            .Select(f => new ProductNutrientFormDto(f.FormCode, f.Label, f.Amount, f.IsMinimum)).ToArray();
 
     public static ProductSupplementDto ToDto(this ProductSupplement productSupplement)
         => new(
@@ -184,8 +190,16 @@ public static class ProductExtensions
             IsActive: productSupplier.IsActive,
             Notes: productSupplier.Notes,
             ProductActive: productSupplier.Product.Active,
-            ProductFieldPubId: productSupplier.Product.Field?.PubId
+            ProductFieldPubId: productSupplier.Product.Field?.PubId,
+            ProductAllowedFieldPubIds: AllowedFields(productSupplier.Product).Select(f => f.PubId).ToArray(),
+            SupplierFieldPubId: productSupplier.Supplier.Field?.PubId
         );
+
+    static ProductAllowedFieldDto[] AllowedFields(Product product)
+        => product.AdditionalFields.Where(f => f.Field is not null).Select(f => f.Field)
+            .Concat(product.Field is { } primary ? [primary] : [])
+            .OrderBy(f => f.FieldName)
+            .Select(f => new ProductAllowedFieldDto(f.PubId, f.FieldName)).ToArray();
 
     public static ProductTypeDto ToDto(this ProductType productType)
         => new(

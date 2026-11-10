@@ -80,6 +80,9 @@ public static class UserEntityMappings
             Active: entity.Active);
 
     public static void UpdateEntity(this User user, UserUpdateDto dto, Ibu ibu)
+        => user.UpdateEntity(dto, ibu.IbuId);
+
+    public static void UpdateEntity(this User user, UserUpdateDto dto, int ibuId)
     {
         user.Email = dto.Email;
         user.UserName = dto.UserName;
@@ -91,7 +94,7 @@ public static class UserEntityMappings
             user.AccessFailedCount = 0;
 
         // FK only (avoid nav assignment)
-        user.IbuId = ibu.IbuId;
+        user.IbuId = ibuId;
 
         user.ManagerUserId = null;
     }

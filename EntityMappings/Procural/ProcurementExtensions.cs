@@ -7,7 +7,7 @@ public static class ProcurementExtensions
 {
     public static ProcurementHubSettingDto ToDto(this ProcurementHubSetting setting)
     {
-        var userAvailable = ProcurementUserAvailability.At(DateTimeOffset.UtcNow).Compile(preferInterpretation: true);
+        var userAvailable = ProcurementUserAvailability.At(DateTimeOffset.UtcNow, setting.HubIbuId).Compile(preferInterpretation: true);
         return new(
             PubId: setting.PubId,
             HubIbuPubId: setting.HubIbu.PubId,

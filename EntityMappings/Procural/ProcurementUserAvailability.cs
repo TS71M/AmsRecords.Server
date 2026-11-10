@@ -7,5 +7,9 @@ namespace AmsRecords.Procural;
 public static class ProcurementUserAvailability
 {
     public static Expression<Func<User, bool>> At(DateTimeOffset now)
-        => user => user.Active && (!user.LockoutEnd.HasValue || user.LockoutEnd <= now);
+        => At(now, null);
+
+    public static Expression<Func<User, bool>> At(DateTimeOffset now, int? hubIbuId)
+        => user => user.Active && (!user.LockoutEnd.HasValue || user.LockoutEnd <= now)
+            && (!hubIbuId.HasValue || user.IbuId == hubIbuId);
 }
