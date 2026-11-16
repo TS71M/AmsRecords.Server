@@ -1,21 +1,18 @@
+using System.Linq.Expressions;
 using static AmsRecords.Weeds.WeedDtos;
 
 namespace AmsRecords.Weeds;
 
 public static class WeedExtensions
 {
-    public static WeedDto ToDto(this Weed weed)
-        => new(
-            PubId: weed.PubId,
-            Code: weed.Code,
-            DefaultName: weed.DefaultName,
-            Active: weed.Active,
-            SortOrder: weed.SortOrder,
-            PreferredFromGts: weed.PreferredFromGts,
-            PreferredToGts: weed.PreferredToGts,
-            AcceptableFromGts: weed.AcceptableFromGts,
-            AcceptableToGts: weed.AcceptableToGts,
-            ManagementNote: weed.ManagementNote);
+    public static Expression<Func<Weed, WeedDto>> DtoProjection { get; }
+        = weed => new WeedDto(weed.PubId, weed.Code, weed.DefaultName, weed.Active, weed.SortOrder,
+            weed.PreferredFromGts, weed.PreferredToGts, weed.AcceptableFromGts, weed.AcceptableToGts,
+            weed.ManagementNote);
+
+    private static readonly Func<Weed, WeedDto> MapDto = DtoProjection.Compile();
+
+    public static WeedDto ToDto(this Weed weed) => MapDto(weed);
 
     public static Weed ToEntity(this WeedCreateDto dto)
         => new()

@@ -1,20 +1,25 @@
+using System.Linq.Expressions;
 using static AmsRecords.Chemicals.ChemicalAuthorizationDtos;
 
 namespace AmsRecords.Chemicals;
 
 public static class ChemicalAuthorizationExtensions
 {
-    public static ChemicalAuthorizationDto ToDto(this ChemicalAuthorization x)
-        => new(
+    public static Expression<Func<ChemicalAuthorization, ChemicalAuthorizationDto>> DtoProjection { get; }
+        = x => new ChemicalAuthorizationDto(
             x.PubId,
-            x.Chemical?.PubId ?? Guid.Empty,
-            x.Chemical?.ChemName ?? "",
-            x.Jurisdiction?.PubId ?? Guid.Empty,
-            x.Jurisdiction?.Name ?? "",
+            x.Chemical == null ? Guid.Empty : x.Chemical.PubId,
+            x.Chemical == null ? "" : x.Chemical.ChemName ?? "",
+            x.Jurisdiction == null ? Guid.Empty : x.Jurisdiction.PubId,
+            x.Jurisdiction == null ? "" : x.Jurisdiction.Name ?? "",
             x.Allowed,
             x.ValidFromUtc,
             x.ValidToUtc,
             x.Active);
+
+    private static readonly Func<ChemicalAuthorization, ChemicalAuthorizationDto> MapDto = DtoProjection.Compile();
+
+    public static ChemicalAuthorizationDto ToDto(this ChemicalAuthorization entity) => MapDto(entity);
 
     public static ChemicalAuthorization ToEntity(this ChemicalAuthorizationCreateDto dto, int chemId, int jurisdictionId)
         => new()

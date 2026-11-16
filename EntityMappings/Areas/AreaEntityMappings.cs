@@ -17,7 +17,8 @@ public static class AreaEntityMappings
             .Select(x => new AreaGrassSpeciesRowDto(
                 x.PubId,
                 x.GrassSpecies!.PubId,
-                x.Percent
+                x.Percent,
+                x.GrassSpecies!.Name
             ))
             .ToList();
 

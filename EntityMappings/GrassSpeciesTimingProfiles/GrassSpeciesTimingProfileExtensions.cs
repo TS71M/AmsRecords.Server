@@ -1,11 +1,12 @@
+using System.Linq.Expressions;
 using static AmsRecords.GrassSpeciesTimingProfiles.GrassSpeciesTimingProfileDtos;
 
 namespace AmsRecords.GrassSpeciesTimingProfiles;
 
 public static class GrassSpeciesTimingProfileExtensions
 {
-    public static GrassSpeciesTimingProfileDto ToDto(this GrassSpeciesTimingProfile entity)
-        => new(
+    public static Expression<Func<GrassSpeciesTimingProfile, GrassSpeciesTimingProfileDto>> DtoProjection { get; }
+        = entity => new GrassSpeciesTimingProfileDto(
             entity.PubId,
             entity.GrassSpecies.PubId,
             entity.Code,
@@ -17,6 +18,10 @@ public static class GrassSpeciesTimingProfileExtensions
             entity.AcceptableFromGts,
             entity.AcceptableToGts,
             entity.ManagementNote);
+
+    private static readonly Func<GrassSpeciesTimingProfile, GrassSpeciesTimingProfileDto> MapDto = DtoProjection.Compile();
+
+    public static GrassSpeciesTimingProfileDto ToDto(this GrassSpeciesTimingProfile entity) => MapDto(entity);
 
     public static GrassSpeciesTimingProfile ToEntity(this GrassSpeciesTimingProfileCreateDto dto, int grassSpeciesId)
         => new()

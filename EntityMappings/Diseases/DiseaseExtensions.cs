@@ -5,23 +5,21 @@ namespace AmsRecords.Diseases;
 public static class DiseaseExtensions
 {
     public static DiseaseSummaryDto ToSummaryDto(this Disease disease)
+        => ToSummaryDto(disease.PubId, disease.Name, disease.SymptomsAndSigns, disease.DiseaseManagement,
+            disease.IndicatorPicture?.PubId, disease.DiseaseAliases.Select(alias => alias.AliasName),
+            disease.DiseaseGrassTypes.Select(link => link.GrassType.GrassTypeName), disease.DiseasePictures.Count);
+
+    public static DiseaseSummaryDto ToSummaryDto(Guid pubId, string name, string? symptoms, string? management,
+        Guid? indicatorPicturePubId, IEnumerable<string> aliases, IEnumerable<string> grassTypes, int pictureCount)
         => new(
-            PubId: disease.PubId,
-            Name: disease.Name,
-            Summary: BuildSummary(disease),
-            IndicatorPicturePubId: disease.IndicatorPicture?.PubId,
+            PubId: pubId,
+            Name: name,
+            Summary: BuildSummary(symptoms, management),
+            IndicatorPicturePubId: indicatorPicturePubId,
             IndicatorThumbnailUrl: null,
-            Aliases: disease.DiseaseAliases
-                .Select(x => x.AliasName)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .OrderBy(x => x)
-                .ToList(),
-            GrassTypes: disease.DiseaseGrassTypes
-                .Select(x => x.GrassType.GrassTypeName)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .OrderBy(x => x)
-                .ToList(),
-            PictureCount: disease.DiseasePictures.Count);
+            Aliases: aliases.Where(alias => !string.IsNullOrWhiteSpace(alias)).OrderBy(alias => alias).ToList(),
+            GrassTypes: grassTypes.Where(type => !string.IsNullOrWhiteSpace(type)).OrderBy(type => type).ToList(),
+            PictureCount: pictureCount);
 
     public static DiseaseAdminListDto ToAdminListDto(this Disease disease)
         => new(
@@ -120,11 +118,9 @@ public static class DiseaseExtensions
             ConfirmationMethod: example.ConfirmationMethod,
             OutbreakGroup: example.OutbreakGroup);
 
-    static string BuildSummary(Disease disease)
+    static string BuildSummary(string? symptoms, string? management)
     {
-        var source = !string.IsNullOrWhiteSpace(disease.SymptomsAndSigns)
-            ? disease.SymptomsAndSigns
-            : disease.DiseaseManagement;
+        var source = !string.IsNullOrWhiteSpace(symptoms) ? symptoms : management;
 
         if (string.IsNullOrWhiteSpace(source))
             return "";

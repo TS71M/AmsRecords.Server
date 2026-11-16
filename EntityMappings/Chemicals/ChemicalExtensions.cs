@@ -1,23 +1,30 @@
+using System.Linq.Expressions;
 using static AmsRecords.Chemicals.ChemicalDtos;
 
 namespace AmsRecords.Chemicals;
 
 public static class ChemicalExtensions
 {
-    public static ChemicalDto ToDto(this Chemical x)
-        => new(
-            PubId: x.PubId,
-            ChemName: x.ChemName,
-            ChemForm: x.ChemicalFormula ?? "",
-            IsElemental: x.IsElemental,
-            ChemTypePubId: x.ChemType?.PubId ?? Guid.Empty,
-            ChemTypeName: x.ChemType?.ChemTypeName ?? "",
-            UnitTypePubId: x.UnitType?.PubId,
-            UnitTypeName: x.UnitType?.UnitTypeName ?? "",
+    public static Expression<Func<Chemical, ChemicalDto>> DtoProjection { get; }
+        = x => new ChemicalDto(
+            x.PubId,
+            x.ChemName,
+            x.ChemicalFormula ?? "",
+            x.IsElemental,
+            x.ChemType == null ? Guid.Empty : x.ChemType.PubId,
+            x.ChemType == null ? "" : x.ChemType.ChemTypeName ?? "",
+            x.UnitType == null ? null : x.UnitType.PubId,
+            x.UnitType == null ? "" : x.UnitType.UnitTypeName ?? "",
             x.Active);
 
-    public static ChemicalMiniDto ToMiniDto(this Chemical x)
-        => new(x.PubId, x.ChemName, x.UnitType?.PubId);
+    public static Expression<Func<Chemical, ChemicalMiniDto>> MiniDtoProjection { get; }
+        = x => new ChemicalMiniDto(x.PubId, x.ChemName, x.UnitType == null ? null : x.UnitType.PubId);
+
+    private static readonly Func<Chemical, ChemicalDto> MapDto = DtoProjection.Compile();
+    private static readonly Func<Chemical, ChemicalMiniDto> MapMiniDto = MiniDtoProjection.Compile();
+
+    public static ChemicalDto ToDto(this Chemical entity) => MapDto(entity);
+    public static ChemicalMiniDto ToMiniDto(this Chemical entity) => MapMiniDto(entity);
 
     public static void UpdateEntity(this Chemical entity, ChemicalUpdateDto dto, int chemTypeId)
     {
